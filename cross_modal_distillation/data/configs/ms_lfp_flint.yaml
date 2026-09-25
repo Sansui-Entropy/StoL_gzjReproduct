@@ -1,0 +1,12 @@
+# FlintCO-only 5s LFP dataset, chunked from 10s segments (no MakinRT).
+defaults:
+  - single/flint_co@config
+
+_target_: cross_modal_distillation.data.multi_dataset.MultiSessionDataset
+_recursive_: False
+config:
+  flint_co:
+    config:
+      segment_from_existing_data: True
+      existing_data_segment_length: 10
+      segment_length: 5

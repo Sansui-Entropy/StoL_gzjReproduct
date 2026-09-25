@@ -177,7 +177,8 @@ class Model(nn.Module):
             ) in enumerate(tbatch):
                 tbatch.set_description(f"Batch {batch_idx + 1}/{len(dataloader)}")
 
-                with torch.amp.autocast(device):
+                amp_device = "cuda" if str(device).startswith("cuda") else "cpu"
+                with torch.amp.autocast(amp_device):
                     inputs = to_cuda(inputs, device=device)
                     position_ids = to_cuda(position_ids, device=device)
                     pooled_embeddings = self.forward(

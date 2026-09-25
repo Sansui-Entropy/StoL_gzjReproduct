@@ -31,12 +31,24 @@ class MultiSessionDataset(Dataset):
 
     def build_datasets(self):
         dataset_metadatas = []
+        self.datasets = []
         for dataset_name, dataset_config in self.config.items():
+            if not hasattr(dataset_config, "_target_") or dataset_config._target_ is None:
+                self.logger.info(
+                    f"Skipping '{dataset_name}' (no _target_, Makin/Flint are configured separately)."
+                )
+                continue
             self.logger.info(
                 f"Building {dataset_name} dataset with module {dataset_config._target_}."
             )
             dataset = build_module(config=dataset_config)
+            self.datasets.append(dataset)
             dataset_metadatas.append(dataset.metadata)
+        if not dataset_metadatas:
+            raise ValueError(
+                "MultiSessionDataset received no dataset configs with _target_. "
+                "Use ms_lfp_makin / ms_lfp_flint (or the combined ms_lfp) yaml."
+            )
         return dataset_metadatas
 
     def build_metadata(self, dataset_metadatas: List[pd.DataFrame]) -> Metadata:

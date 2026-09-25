@@ -1,0 +1,67 @@
+# Teacher spike MAE configuration
+# Paper reference: Appendix A.2
+# Run: python -m cross_modal_distillation.train.train_mae mode=pretrain
+
+# ──────────────────────────────────────────────────────────
+# Mode: "pretrain" or "finetune"
+# ──────────────────────────────────────────────────────────
+mode: pretrain
+
+# Path to existing checkpoint when mode=finetune
+teacher_ckpt: null   # e.g. ./results/checkpoints/teacher/best_pretrain.ckpt
+
+# dataset.new_session is the distillation session, held out of teacher pretraining.
+# The 18 generalization sessions are never used here.
+# Checkpoints are written to output_dir/<new_session>/.
+
+# ──────────────────────────────────────────────────────────
+# Output
+# ──────────────────────────────────────────────────────────
+output_dir: ./results/checkpoints/teacher
+device: cuda   # or "cpu"
+
+# ──────────────────────────────────────────────────────────
+# Model  (paper A.2)
+# ──────────────────────────────────────────────────────────
+model:
+  spatial_patch_size: 64       # S for spikes (paper A.2)
+  d_encoder: 256               # transformer hidden dim (paper A.2)
+  d_predictor: 192             # predictor hidden dim (paper A.2)
+  num_encoder_layers: 10       # encoder depth (paper A.2)
+  num_predictor_layers: 4      # predictor depth (paper A.2)
+  num_heads: 8                 # attention heads (must divide d_encoder & d_predictor)
+  max_count: 5                 # max spike count per bin (paper 3.1)
+  mask_ratio: 0.60             # fraction of tokens dropped (paper A.1)
+  dropout: 0.1
+  use_flash_attention: false   # set true for memory efficiency on GPU
+  max_pos: 1024                # maximum RoPE position index
+
+# ──────────────────────────────────────────────────────────
+# Training  (paper A.2)
+# ──────────────────────────────────────────────────────────
+training:
+  batch_size: 64               # paper: 64 for multi-session (4 GPUs total)
+  max_epochs: 600              # paper: ~550 epochs until convergence
+  early_stop_patience: 50      # paper A.2
+  num_workers: 4
+
+  # Learning rate schedule
+  max_lr: 0.000625             # paper A.2
+  start_factor: 0.3            # initial LR = start_factor × max_lr
+  warmup_epochs: 30            # paper A.2
+  decay_factor: 0.995          # exponential per-epoch decay (paper A.2)
+
+  # AdamW (paper A.2)
+  weight_decay: 0.1            # paper: starts at 0.1 (ramps but never reaches 0.4)
+
+# ──────────────────────────────────────────────────────────
+# Dataset  — fill in once data is available
+# ──────────────────────────────────────────────────────────
+dataset:
+  lfp_metadata_path: /gfs/share/datasets/MakinRT_gzjTest/metadata_3a4b4.csv
+  spike_segment_dir: /gfs/share/datasets/MakinRT_gzjTest/spike_segments_5s
+  spike_metadata_path: /gfs/share/datasets/MakinRT_gzjTest/spike_pretrain_metadata.csv
+  session_info_path: /gfs/share/datasets/MakinRT_gzjTest/spike_session_info.csv
+  split: train
+  # Held out of teacher pretraining. The 18 eval sessions are also excluded.
+  new_session: MonkeyI_20160622_01

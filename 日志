@@ -1,0 +1,25 @@
+cd /data/zjgong/CrossModalDistillation
+
+预处理
+/data/zjgong/miniconda3/envs/stol/bin/python -m cross_modal_distillation.preprocess.preprocess_makin
+
+LFP 推理
+/data/zjgong/miniconda3/envs/stol/bin/python -m cross_modal_distillation.inference_makin_lfp
+
+
+Spike教师预训练
+
+CUDA_VISIBLE_DEVICES=4,5,6,7 python -m cross_modal_distillation.train.train_mae mode=pretrain
+
+在 xxxxx 上微调教师
+python -m cross_modal_distillation.train.train_mae \
+    mode=finetune \
+    teacher_ckpt=./results/checkpoints/teacher/MonkeyI_20160622_01/best_pretrain.ckpt
+
+用冻结教师蒸馏 LFP 学生
+python -m cross_modal_distillation.train.train_distill \
+    teacher_ckpt=./results/checkpoints/teacher/MonkeyI_20160622_01/best_finetune.ckpt
+
+LFP 推理
+python -m cross_modal_distillation.inference_makin_lfp \
+    --ckpt ./results/checkpoints/distill/MonkeyI_20160622_01/best_distill.ckpt

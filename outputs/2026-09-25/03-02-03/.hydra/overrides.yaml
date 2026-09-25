@@ -1,0 +1,2 @@
+- mode=finetune
+- teacher_ckpt=./results/checkpoints/teacher/best_pretrain.ckpt

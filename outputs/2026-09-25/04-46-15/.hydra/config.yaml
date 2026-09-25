@@ -1,0 +1,33 @@
+mode: pretrain
+teacher_ckpt: null
+output_dir: ./results/checkpoints/teacher
+device: cuda
+model:
+  spatial_patch_size: 64
+  d_encoder: 256
+  d_predictor: 192
+  num_encoder_layers: 10
+  num_predictor_layers: 4
+  num_heads: 8
+  max_count: 5
+  mask_ratio: 0.6
+  dropout: 0.1
+  use_flash_attention: false
+  max_pos: 1024
+training:
+  batch_size: 64
+  max_epochs: 600
+  early_stop_patience: 50
+  num_workers: 4
+  max_lr: 0.000625
+  start_factor: 0.3
+  warmup_epochs: 30
+  decay_factor: 0.995
+  weight_decay: 0.1
+dataset:
+  lfp_metadata_path: /gfs/share/datasets/MakinRT_gzjTest/metadata_3a4b4.csv
+  spike_segment_dir: /gfs/share/datasets/MakinRT_gzjTest/spike_segments_5s
+  spike_metadata_path: /gfs/share/datasets/MakinRT_gzjTest/spike_pretrain_metadata.csv
+  session_info_path: /gfs/share/datasets/MakinRT_gzjTest/spike_session_info.csv
+  split: train
+  new_session: MonkeyI_20160622_01

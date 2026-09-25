@@ -11,6 +11,18 @@ BatchItem = namedtuple(
     ["inputs", "subject_sessions", "position_ids", "segment_filenames"],
 )
 
+# Named tuple for paired (spike, LFP) batches used in distillation training.
+PairedBatchItem = namedtuple(
+    "PairedBatchItem",
+    [
+        "spikes",            # Tensor (B, T, N_spike) or list of Tensors
+        "lfp",               # Tensor (B, T, N_lfp)  or list of Tensors
+        "subject_sessions",  # list[str] of length B
+        "position_ids",      # Tensor (B, T) or list, shared for spike & LFP
+        "segment_filenames", # list[str] of length B
+    ],
+)
+
 
 def collate_with_metadata_fn(batch):
     inputs, position_ids, subject_sessions = [], [], []
@@ -48,6 +60,56 @@ def collate_with_metadata_fn(batch):
         segment_filenames=segment_filenames,
     )
     return batch
+
+
+def collate_paired_fn(batch):
+    """
+    Collate function for PairedSpikeLFPDataset batches.
+
+    Each element of `batch` is a dict with keys:
+        "spikes"          : Tensor (T, N_spike)
+        "lfp"             : Tensor (T, N_lfp)
+        "subject_session" : str
+        "segment_filename": str
+
+    If all samples share the same (T, N_spike) and (T, N_lfp), they are
+    stacked into (B, T, N) tensors.  Otherwise they are left as lists for
+    the variable-length path in the tokenizer.
+    """
+    spikes_list, lfp_list = [], []
+    subject_sessions, segment_filenames = [], []
+    spike_shapes, lfp_shapes = [], []
+
+    for dp in batch:
+        spikes_list.append(dp["spikes"])
+        lfp_list.append(dp["lfp"])
+        subject_sessions.append(dp["subject_session"])
+        segment_filenames.append(dp["segment_filename"])
+        spike_shapes.append(dp["spikes"].shape)
+        lfp_shapes.append(dp["lfp"].shape)
+
+    # Stack if all shapes match; otherwise keep as list
+    if len(set(spike_shapes)) == 1:
+        spikes = torch.stack(spikes_list, dim=0)          # (B, T, N_spike)
+        position_ids = torch.arange(spikes.shape[1]).unsqueeze(0).expand(
+            spikes.shape[0], -1
+        )  # (B, T)
+    else:
+        spikes = spikes_list
+        position_ids = [torch.arange(s.shape[0]) for s in spikes_list]
+
+    if len(set(lfp_shapes)) == 1:
+        lfp = torch.stack(lfp_list, dim=0)                # (B, T, N_lfp)
+    else:
+        lfp = lfp_list
+
+    return PairedBatchItem(
+        spikes=spikes,
+        lfp=lfp,
+        subject_sessions=subject_sessions,
+        position_ids=position_ids,
+        segment_filenames=segment_filenames,
+    )
 
 
 def get_collate_fn(collate_fn_name, **partial_kwargs):

@@ -28,7 +28,16 @@ class MakinRTDataset(BaseDataset):
         return a list of available sessions in format of {subject}-{session}
         these will be used for
         """
-        return {"MonkeyI": AvailableSessions.MonkeyI.value}
+        sessions = list(AvailableSessions.MonkeyI.value)
+        include = self.config.get("include_sessions", None)
+        if include:
+            include_set = set(include)
+            sessions = [
+                s
+                for s in sessions
+                if s in include_set or f"MonkeyI_{s}" in include_set
+            ]
+        return {"MonkeyI": sessions}
 
     @property
     def experiment_type(self):
@@ -89,6 +98,17 @@ class MakinRTDataset(BaseDataset):
 
             sessions_count = len(self.available_sessions[subject])
             for i, session in enumerate(self.available_sessions[subject]):
+                out_path = self.get_processed_raw_data_file_path(
+                    subject=subject, session=session
+                )
+                if os.path.exists(out_path) and not self.config.get(
+                    "force_reprocess_stage1", False
+                ):
+                    self.logger.info(
+                        f"Skipping session {session} ({i+1}/{sessions_count}), "
+                        f"already processed: {out_path}"
+                    )
+                    continue
                 raw_file_path = self.get_raw_data_file_path(
                     subject=subject, session=session
                 )

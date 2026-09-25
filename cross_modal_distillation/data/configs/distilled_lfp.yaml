@@ -1,3 +1,5 @@
+# Combined MakinRT + FlintCO distilled-LFP 5s config (paper default).
+# For a single dataset use distilled_lfp_makin.yaml or distilled_lfp_flint.yaml.
 defaults:
   - single/makin_rt@config
   - single/flint_co@config

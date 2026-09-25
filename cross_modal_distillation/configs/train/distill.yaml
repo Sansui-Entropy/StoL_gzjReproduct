@@ -1,0 +1,60 @@
+# LFP student distillation configuration
+# Paper reference: Section 3.3, Eq. 1, Appendix A.2
+# Run: python -m cross_modal_distillation.train.train_distill \
+#          teacher_ckpt=./results/checkpoints/teacher/best_finetune.ckpt
+
+# ──────────────────────────────────────────────────────────
+# Teacher checkpoint (fine-tuned SpikeMAEModel, will be frozen)
+# ──────────────────────────────────────────────────────────
+teacher_ckpt: null   # REQUIRED: path to fine-tuned teacher .ckpt
+
+# ──────────────────────────────────────────────────────────
+# Output
+# ──────────────────────────────────────────────────────────
+output_dir: ./results/checkpoints/distill
+device: cuda   # or "cpu"
+
+# ──────────────────────────────────────────────────────────
+# Model  (paper A.2 / 3.1 / 3.3)
+# ──────────────────────────────────────────────────────────
+model:
+  spatial_patch_size: 32      # S for LFP (paper A.2)
+  d_hidden: 256               # student encoder hidden dim (same as teacher)
+  num_encoder_layers: 10      # encoder depth (paper A.2)
+  num_heads: 8
+  kernel_size: 5              # official distilled LFP causal conv
+  dilation: 2                 # official distilled LFP causal conv
+  dropout: 0.1
+  use_flash_attention: false
+  max_pos: 1024               # maximum RoPE position index
+
+# ──────────────────────────────────────────────────────────
+# Training  (paper A.2)
+# ──────────────────────────────────────────────────────────
+training:
+  batch_size: 32              # paper: 32 for single-session distillation
+  max_epochs: 400             # paper A.2
+  early_stop_patience: 50     # paper A.2
+  num_workers: 4
+  lambda_align: 5.0           # λ in Eq. 1 (paper A.2)
+
+  # Learning rate schedule (same as teacher)
+  max_lr: 0.000625
+  start_factor: 0.3
+  warmup_epochs: 30
+  decay_factor: 0.995
+
+  # AdamW
+  weight_decay: 0.1
+
+# ──────────────────────────────────────────────────────────
+# Dataset  — fill in once data is available
+# ──────────────────────────────────────────────────────────
+dataset:
+  # Must match the teacher finetune session (dataset.new_session).
+  # Checkpoints are written to output_dir/<session>/.
+  session: MonkeyI_20160622_01
+  lfp_metadata_path: /gfs/share/datasets/MakinRT_gzjTest/metadata_3a4b4.csv
+  spike_segment_dir: /gfs/share/datasets/MakinRT_gzjTest/spike_segments_5s
+  session_info_path: /gfs/share/datasets/MakinRT_gzjTest/spike_session_info.csv
+  split: train

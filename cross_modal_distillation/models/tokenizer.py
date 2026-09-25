@@ -152,6 +152,30 @@ class PatchTokenizer(nn.Module):
             x = x.long().clamp(min=0, max=self.max_count)
         return x
 
+    def get_spatial_pad_mask(self, d_input: int) -> torch.Tensor:
+        """
+        返回形状 (spatial_patch_size,) 的布尔 mask，True 表示该维是有效神经元/通道，
+        False 表示 spatial padding 填充维，用于 MAE Poisson NLL 中排除 pad 维。
+
+        例：d_input=96, spatial_patch_size=64
+          patch 0: 全 True (64 个有效神经元)
+          patch 1: 前 32 True，后 32 False (pad)
+        """
+        remainder = d_input % self.spatial_patch_size
+        if remainder == 0:
+            # 无 padding，所有维都有效
+            valid_in_last_patch = self.spatial_patch_size
+        else:
+            valid_in_last_patch = remainder
+
+        num_patches = self.get_num_spatial_patches(d_input)
+        # 所有 patch 默认全有效
+        mask = torch.ones(num_patches, self.spatial_patch_size, dtype=torch.bool)
+        # 最后一个 patch 的 pad 部分置 False
+        if valid_in_last_patch < self.spatial_patch_size:
+            mask[-1, valid_in_last_patch:] = False
+        return mask  # (num_patches, spatial_patch_size)
+
     def _create_patches_for_batched_tensor(
         self, x: torch.Tensor, position_ids: Optional[Union[torch.Tensor, List]] = None
     ):

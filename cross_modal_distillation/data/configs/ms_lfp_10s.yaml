@@ -1,3 +1,5 @@
+# Combined MakinRT + FlintCO 10s config (paper default).
+# For a single dataset use ms_lfp_makin_10s.yaml or ms_lfp_flint_10s.yaml instead.
 defaults:
   - single/makin_rt@config
   - single/flint_co@config
