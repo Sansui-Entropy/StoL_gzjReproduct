@@ -1,2 +1,0 @@
-- mode=finetune
-- teacher_ckpt=./results/checkpoints/teacher/MonkeyI_20160622_01/best_pretrain.ckpt
