@@ -141,3 +141,5 @@ test.ipynb
 .vscode
 Results
 local_files
+
+outputs/
